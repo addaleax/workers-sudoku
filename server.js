@@ -33,6 +33,8 @@ http.createServer((req, res) => {
     if (workerPool.length > 0) {
       handleRequest(res, dataAsUint8Array, workerPool.shift());
     } else {
+      // Queue up Requests when no worker is available
+      // Function is waiting for a worker to be assigned
       waiting.push((worker) => handleRequest(res, dataAsUint8Array, worker));
     }
   });
@@ -43,7 +45,8 @@ function handleRequest(res, sudokuData, worker) {
   worker.once('message', (solutionData) => {
     res.end(JSON.stringify([...solutionData]));
 
-    // Put the Worker back in the queue.
+    // If Requests are waiting reuse current worker to handle queuing request
+    // Add worker to pool if no Requests are queuing
     if (waiting.length > 0)
       waiting.shift()(worker);
     else
